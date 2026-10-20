@@ -164,6 +164,15 @@ export interface RunStore {
   saveSummary(summary: Harness2Result): Promise<void>;
 }
 
+export type Harness2Event =
+  | { type: "run-planned"; runId: string; taskId: string; mode: RecursionMode; k: number; expectedRollouts: number; expectedEditStages: number }
+  | { type: "rollout-started"; runId: string; taskId: string; stage: string }
+  | { type: "rollout-finished"; runId: string; taskId: string; stage: string; status: RunArtifact["status"]; delivered: boolean; usage: RunUsage }
+  | { type: "stage-finished"; runId: string; taskId: string; stage: string; dimension: StageEvidence["dimension"]; fellBack: boolean; keptBase: boolean }
+  | { type: "selection-finished"; runId: string; taskId: string; chosenLabel: string; fellBack: boolean }
+  | { type: "reflection-finished"; runId: string; taskId: string; experienceWritten: boolean }
+  | { type: "run-finished"; runId: string; taskId: string; status: Harness2Result["status"]; chosenLabel: string; errors: number; usage: RunUsage };
+
 export interface Harness2Policy {
   mode: RecursionMode;
   k: number;

@@ -57,4 +57,10 @@ npm run eval:report -- observations.json harness2-k1
 
 同一 `taskId + seed + method` 只能出现一次。命令在上线门槛未通过时返回非零退出码，便于接入 CI。
 
+## 运行预检与事件
+
+启用插件后可调用 `harness2_plan`，在不进行任何模型调用的情况下查看 `4k` rollout、`3k` 编辑阶段、selector/reflection 调用数以及 token、费用和 C7 开关。真实运行通过 `harness2/event` 发出不含任务正文、轨迹或交付物的生命周期事件；完整内容只保存在 Run Store。
+
+运行中的任务可通过 `harness2_status` 查询，并用 `harness2_cancel` 加精确 `runId` 取消。内部 rollout Agent 会收到同一个取消信号并完成资源回收。
+
 设计和后续工作见 [开发计划](docs/dsh-plugin-harness2-development-plan.md)。

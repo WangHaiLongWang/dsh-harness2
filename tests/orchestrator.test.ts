@@ -11,6 +11,7 @@ import type {
   ReflectionRequest,
   SelectionCandidate,
   TaskContext,
+  Harness2Event,
 } from "../src/types.js";
 
 const task: TaskContext = {
@@ -65,6 +66,28 @@ test("parallel k=2 executes 4k rollouts, 3k stages, selection, and reflection", 
   assert.equal(runStore.summaries.length, 1);
   assert.equal(result.experienceWritten, true);
   assert.equal((await experienceStore.list(policy.scope)).length, 1);
+});
+
+test("orchestrator emits bounded lifecycle events without task or deliverable content", async () => {
+  const substrate = new FakeDshSubstrate();
+  const events: Harness2Event[] = [];
+  const orchestrator = new Harness2Orchestrator({
+    substrate,
+    editor: new DeterministicEditor(),
+    experienceStore: new MemoryExperienceStore(),
+    runStore: new MemoryRunStore(),
+    id: () => "events",
+    onEvent: event => events.push(event),
+  });
+  const result = await orchestrator.run(task, DEFAULT_POLICY);
+  assert.equal(result.status, "completed");
+  assert.equal(events[0]?.type, "run-planned");
+  assert.equal(events.at(-1)?.type, "run-finished");
+  assert.equal(events.filter((event) => event.type === "rollout-started").length, 4);
+  assert.equal(events.filter((event) => event.type === "rollout-finished").length, 4);
+  assert.equal(events.filter((event) => event.type === "stage-finished").length, 3);
+  const serialized = JSON.stringify(events);
+  assert.doesNotMatch(serialized, /Produce result\.txt|stage=final1/);
 });
 
 test("sequential recursion passes prior stages into later rounds", async () => {

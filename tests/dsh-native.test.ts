@@ -68,6 +68,25 @@ class Harness2ScriptAdapter extends LlmAdapter {
   }
 }
 
+class HangingAdapter extends LlmAdapter {
+  async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    yield { type: "block-start", index: 0, blockType: "text" };
+    await new Promise<void>((_resolve, reject) => {
+      const fail = (): void => reject(new Error("aborted"));
+      if (options.signal?.aborted) fail();
+      else options.signal?.addEventListener("abort", fail, { once: true });
+    });
+  }
+}
+
+async function waitFor(predicate: () => boolean, timeoutMs = 2_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() >= deadline) throw new Error("condition timed out");
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
 test("native DSH runner creates an isolated production Agent with scoped harness overlay", async () => {
   const ctx = new Context();
   try {
@@ -192,6 +211,53 @@ test("native DSH runtime completes the full k=1 Propose-Probe-Compose chain", as
       toolErrors: 0,
     });
     assert.equal(ctx.agents.list().length, 1, "all four probe Agents must be disposed");
+  } finally {
+    await ctx.fiber.dispose();
+  }
+});
+
+test("native dry-run plan performs no model call", () => {
+  const ctx = new Context();
+  try {
+    const runtime = new DshHarness2Runtime(ctx, {
+      mode: "parallel", k: 1, timeoutMs: 10_000,
+      maxParallelProposals: 2, maxParallelRollouts: 2,
+      maxTotalTokens: 100_000, libraryMode: "off",
+      tenant: "test", project: "test", dataDir: "runs/plan-test",
+    });
+    assert.deepEqual(runtime.plan({ mode: "sequential", k: 3 }), {
+      mode: "sequential", k: 3, expectedRollouts: 12, expectedEditStages: 9,
+      selectionCalls: 1, reflectionCalls: 0, maxTotalTokens: 100_000,
+      maxCost: null, pricingConfigured: false, scriptsEnabled: false,
+    });
+  } finally {
+    void ctx.fiber.dispose();
+  }
+});
+
+test("native runtime exposes active work and cancels it by exact run id", async () => {
+  const ctx = new Context();
+  try {
+    await mountAgentLoopTestDependencies(ctx);
+    ctx.llm.registerAdapter(["hang"], new HangingAdapter());
+    await ctx.plugin(harness2Plugin, {
+      mode: "parallel", k: 1, timeoutMs: 60_000,
+      maxParallelProposals: 2, maxParallelRollouts: 2,
+      maxTotalTokens: 100_000, libraryMode: "off",
+      tenant: "test", project: "test", dataDir: "runs/cancel-test",
+    });
+    const harness = await mountAgentLoopTestHarness(ctx);
+    const parent = await harness.create(SessionId("harness2-cancel-parent"), { provider: "hang", model: "hang" });
+    const runtime = ctx.harness2;
+    const running = runtime.run(parent, { task: "hang until cancelled", domain: "test" });
+    await waitFor(() => runtime.active().length === 1);
+    const runId = runtime.active()[0]?.runId;
+    assert.ok(runId);
+    assert.equal(runtime.cancel("unknown"), false);
+    assert.equal(runtime.cancel(runId), true);
+    const result = await running;
+    assert.equal(result.status, "cancelled");
+    assert.deepEqual(runtime.active(), []);
   } finally {
     await ctx.fiber.dispose();
   }

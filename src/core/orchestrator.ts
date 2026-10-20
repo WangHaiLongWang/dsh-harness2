@@ -18,6 +18,7 @@ import type {
   StageEvidence,
   TaskContext,
   UsageAwareHarnessEditor,
+  Harness2Event,
 } from "../types.js";
 
 const MAX_EDIT_ATTEMPTS = 2;
@@ -29,6 +30,7 @@ export interface Harness2Dependencies {
   runStore: RunStore;
   now?: () => Date;
   id?: () => string;
+  onEvent?: (event: Harness2Event) => void;
 }
 
 function assertPolicy(policy: Harness2Policy): void {
@@ -78,6 +80,7 @@ export class Harness2Orchestrator {
   readonly #runStore: RunStore;
   readonly #now: () => Date;
   readonly #id: () => string;
+  readonly #onEvent: (event: Harness2Event) => void;
 
   constructor(deps: Harness2Dependencies) {
     this.#substrate = deps.substrate;
@@ -86,6 +89,7 @@ export class Harness2Orchestrator {
     this.#runStore = deps.runStore;
     this.#now = deps.now ?? (() => new Date());
     this.#id = deps.id ?? randomUUID;
+    this.#onEvent = deps.onEvent ?? (() => {});
   }
 
   plan(task: TaskContext, policy: Harness2Policy): {
@@ -110,6 +114,8 @@ export class Harness2Orchestrator {
   async run(task: TaskContext, policy: Harness2Policy, signal?: AbortSignal): Promise<Harness2Result> {
     assertPolicy(policy);
     const runId = `h2-${this.#id()}`;
+    const planned = this.plan(task, policy);
+    this.#emit({ type: "run-planned", runId, taskId: task.taskId, mode: policy.mode, k: policy.k, expectedRollouts: planned.expectedRollouts, expectedEditStages: planned.expectedEditStages });
     const budget = new BudgetTracker(policy.maxTotalTokens, policy.maxCost);
     const usageAware = this.#editor as Partial<UsageAwareHarnessEditor>;
     usageAware.setUsageSink?.((usage) => budget.addUsage(usage));
@@ -185,6 +191,7 @@ export class Harness2Orchestrator {
         adoptedHarness = chosen.tree;
       }
       if (!chosenRun) throw new Error("no rollout produced a deliverable");
+      this.#emit({ type: "selection-finished", runId, taskId: task.taskId, chosenLabel, fellBack: fallbacks.includes("selection") || fallbacks.includes("delivered-base") });
 
       if (policy.libraryMode === "read-write" && adoptedHarness) {
         const reflection = await this.#editor.reflect({
@@ -208,6 +215,7 @@ export class Harness2Orchestrator {
           experienceWritten = true;
         }
       }
+      this.#emit({ type: "reflection-finished", runId, taskId: task.taskId, experienceWritten });
     } catch (error) {
       errors.push(String(error));
     }
@@ -229,6 +237,7 @@ export class Harness2Orchestrator {
       errors,
     };
     await this.#runStore.saveSummary(result);
+    this.#emit({ type: "run-finished", runId, taskId: task.taskId, status: result.status, chosenLabel, errors: errors.length, usage: result.totalUsage });
     return result;
   }
 
@@ -257,6 +266,7 @@ export class Harness2Orchestrator {
       return stage;
     });
     stages.push(...candidates);
+    for (const stage of candidates) this.#stageEvent(runId, task.taskId, stage);
 
     const finals = await mapLimit(
       Array.from({ length: policy.k }, (_, i) => i + 1),
@@ -272,6 +282,7 @@ export class Harness2Orchestrator {
       },
     );
     stages.push(...finals);
+    for (const stage of finals) this.#stageEvent(runId, task.taskId, stage);
     return finals;
   }
 
@@ -303,12 +314,14 @@ export class Harness2Orchestrator {
         return stage;
       });
       stages.push(...candidates);
+      for (const stage of candidates) this.#stageEvent(runId, task.taskId, stage);
       const final = await this.#composeAndRoll(
         runId, `final${round}`, round, task, current, bases, candidates, stages,
         library, policy, budget, signal,
       );
       if (final.fellBack) fallbacks.push(final.label);
       stages.push(final);
+      this.#stageEvent(runId, task.taskId, final);
       finals.push(final);
       current = final.tree;
     }
@@ -436,6 +449,7 @@ export class Harness2Orchestrator {
       throw new Error(`materialized harness fingerprint mismatch at ${stage}`);
     }
     const stageRunId = `${parentRunId}-${stage}`;
+    this.#emit({ type: "rollout-started", runId: parentRunId, taskId: task.taskId, stage });
     let run: RunArtifact;
     try {
       run = await this.#substrate.execute(
@@ -473,7 +487,20 @@ export class Harness2Orchestrator {
     }
     await this.#runStore.saveRun(run);
     budget.add(run);
+    this.#emit({ type: "rollout-finished", runId: parentRunId, taskId: task.taskId, stage, status: run.status, delivered: run.delivered, usage: run.usage });
     return run;
+  }
+
+  #stageEvent(runId: string, taskId: string, stage: StageEvidence): void {
+    this.#emit({ type: "stage-finished", runId, taskId, stage: stage.label, dimension: stage.dimension, fellBack: stage.fellBack, keptBase: stage.keptBase });
+  }
+
+  #emit(event: Harness2Event): void {
+    try {
+      this.#onEvent(event);
+    } catch {
+      // Observability is non-authoritative and cannot change an execution result.
+    }
   }
 }
 

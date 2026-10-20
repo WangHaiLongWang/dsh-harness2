@@ -154,7 +154,7 @@ export class DshAgentRunner {
         }
         installNativeComponents(this.ctx, agentCtx, request.tree);
         stagedScripts.install(agentCtx);
-        agentCtx.tools.restrict({ deny: ["harness2_run"] });
+        agentCtx.tools.restrict({ deny: ["harness2_run", "harness2_plan", "harness2_status", "harness2_cancel"] });
       },
       });
     } catch (error) {

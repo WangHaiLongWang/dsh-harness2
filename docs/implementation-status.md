@@ -24,6 +24,10 @@
 - editor、selector、reflector 与 executor token 的统一预算统计。
 - 显式 per-million pricing 和跨 editor/rollout 的货币硬预算；未配置价格时不推断费用。
 - 配对评估报告：Win/Tie/Loss、回退率、交付率、工具错误率、token/费用/时延、Gain-per-Cost、bootstrap 95% CI 和发布门槛。
+- 零模型调用的 `harness2_plan` 预检工具。
+- 不含任务/轨迹/交付物正文的 `harness2/event` 生命周期遥测。
+- 同一进程内按 scope 串行化经验库 append，避免并发 read-modify-write 丢记录。
+- `harness2_status` 活跃任务查询和 `harness2_cancel` 精确 run-id 取消。
 - 本地 DSH 源码链接脚本及 Web profile `link:` 安装。
 
 ## 验证结果
@@ -31,7 +35,7 @@
 | 检查 | 结果 |
 |---|---|
 | TypeScript strict build | 通过 |
-| 自动化测试 | 28/28 通过 |
+| 自动化测试 | 32/32 通过 |
 | 生产 AgentLoop 单 Probe 集成 | 通过 |
 | 生产 AgentLoop 完整 `k=1` 链路 | 通过，3 次编辑 + 4 次 rollout |
 | 临时 Agent 回收 | 通过，运行后只保留父 Agent |
