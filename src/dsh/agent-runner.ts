@@ -4,8 +4,10 @@ import type { Agent, AgentOptions } from "@deepseek-ai/dsh-agent";
 import { createUserMessage } from "@deepseek-ai/dsh-llm";
 import { SessionId, type SessionEvent } from "@deepseek-ai/dsh-session";
 import type {} from "@deepseek-ai/dsh-agent-preset-registry";
-import type { HarnessTree, RunArtifact, RunUsage, TaskContext } from "../types.js";
+import type { HarnessTree, HarnessValidationIssue, RunArtifact, RunUsage, TaskContext } from "../types.js";
 import { fingerprintTree } from "../core/harness-tree.js";
+import { priceUsage, type DshTokenPricing } from "./pricing.js";
+import { installNativeComponents, validateNativeComponents } from "./components.js";
 
 const OVERLAY_SECTION = "harness2:overlay";
 
@@ -32,7 +34,7 @@ function finalText(events: readonly SessionEvent[]): string {
   return text;
 }
 
-function usageOf(events: readonly SessionEvent[]): RunUsage {
+function usageOf(events: readonly SessionEvent[], pricing?: DshTokenPricing): RunUsage {
   const usage: RunUsage = {
     inputTokens: 0,
     outputTokens: 0,
@@ -47,6 +49,7 @@ function usageOf(events: readonly SessionEvent[]): RunUsage {
       usage.outputTokens += event.data.usage.outputTokens;
       usage.cachedTokens += (event.data.usage.cacheReadTokens ?? 0)
         + (event.data.usage.cacheWriteTokens ?? 0);
+      usage.cost += priceUsage(event.data.usage, pricing);
     } else if (event.type === "tool/call") {
       usage.toolCalls += 1;
     } else if (event.type === "tool/result" && event.data.message.isError === true) {
@@ -89,7 +92,14 @@ export interface DshAgentRunRequest {
 
 /** Executes one isolated Harness² probe through the production DSH Agent registry. */
 export class DshAgentRunner {
-  constructor(private readonly ctx: Context) {}
+  constructor(
+    private readonly ctx: Context,
+    private readonly pricing?: DshTokenPricing,
+  ) {}
+
+  validate(tree: HarnessTree): HarnessValidationIssue[] {
+    return validateNativeComponents(this.ctx, tree);
+  }
 
   async run(request: DshAgentRunRequest): Promise<RunArtifact> {
     const startedAt = new Date().toISOString();
@@ -124,6 +134,7 @@ export class DshAgentRunner {
             interpolate: false,
           });
         }
+        installNativeComponents(this.ctx, agentCtx, request.tree);
         agentCtx.tools.restrict({ deny: ["harness2_run"] });
       },
     });
@@ -139,7 +150,13 @@ export class DshAgentRunner {
         content: [{ type: "text", text: request.task.prompt }],
         source: { kind: "user" },
       }));
-      await handle.agent.whenIdle();
+      while (true) {
+        await handle.agent.whenIdle();
+        const idleSeq = handle.agent.session.seq;
+        if (!await this.ctx.get("subagents")?.waitForChildren(handle.agent)
+          && handle.agent.status === "idle"
+          && handle.agent.session.seq === idleSeq) break;
+      }
       const events = handle.agent.session.snapshotEvents(firstSeq);
       const text = finalText(events);
       const ended = [...events].reverse().find((event) => event.type === "turn/end");
@@ -156,7 +173,7 @@ export class DshAgentRunner {
         delivered: !failed && text.trim() !== "",
         trajectory: trajectoryOf(events),
         deliverables: text.trim() === "" ? {} : { "response.md": text },
-        usage: usageOf(events),
+        usage: usageOf(events, this.pricing),
         ...(failed ? { error: `turn ended with ${ended.data.reason.kind}` } : {}),
       };
     } finally {

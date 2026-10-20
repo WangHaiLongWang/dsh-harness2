@@ -131,6 +131,15 @@ test("hard token budget stops opening new stages and returns failed status", asy
   assert.match(result.errors.join("\n"), /token budget exceeded/);
 });
 
+test("explicit monetary pricing enforces the hard cost budget", async () => {
+  const { orchestrator, substrate } = setup();
+  substrate.perRunCost = 0.6;
+  const result = await orchestrator.run(task, { ...DEFAULT_POLICY, maxCost: 0.5 });
+  assert.equal(result.status, "failed");
+  assert.equal(substrate.executions.length, 1);
+  assert.match(result.errors.join("\n"), /cost budget exceeded/);
+});
+
 test("aborted run does not launch a rollout", async () => {
   const { orchestrator, substrate } = setup();
   const controller = new AbortController();

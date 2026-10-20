@@ -42,7 +42,9 @@ function assertPolicy(policy: Harness2Policy): void {
     maxTotalTokens: policy.maxTotalTokens,
     maxCost: policy.maxCost,
   })) {
-    if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} must be positive`);
+    if ((name !== "maxCost" && !Number.isFinite(value)) || value <= 0) {
+      throw new Error(`${name} must be positive${name === "maxCost" ? " or Infinity" : ""}`);
+    }
   }
   if (policy.scope.domain === "") throw new Error("experience scope domain is required");
 }

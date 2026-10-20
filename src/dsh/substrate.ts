@@ -45,17 +45,9 @@ export class NativeDshSubstrate implements DshHarnessSubstrate {
     });
   }
 
-  async validate(_tree: HarnessTree, _task: TaskContext): Promise<HarnessValidationResult> {
-    const supported = new Set(["system.md", "guardrails.md", "memory.md", "tool-guidance.md"]);
-    const unsupported = Object.keys(_tree).filter((file) => !supported.has(file));
-    return {
-      ok: unsupported.length === 0,
-      issues: unsupported.map((file) => ({
-        path: file,
-        code: "unsupported-dsh-component",
-        message: "DSH native MVP materializes only C1-C4 text components",
-      })),
-    };
+  async validate(tree: HarnessTree, _task: TaskContext): Promise<HarnessValidationResult> {
+    const issues = this.runner.validate(tree);
+    return { ok: issues.length === 0, issues };
   }
 
   async environmentFingerprint(): Promise<string> {

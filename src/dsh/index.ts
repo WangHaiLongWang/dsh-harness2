@@ -25,7 +25,13 @@ export const Config: z<DshHarness2Config> = z.object({
   maxParallelProposals: z.number().min(1).step(1).default(2),
   maxParallelRollouts: z.number().min(1).step(1).default(2),
   maxTotalTokens: z.number().min(1).step(1).default(1_000_000),
-  maxCost: z.number().min(0.01).default(20),
+  maxCost: z.number().min(0.000001),
+  pricing: z.object({
+    inputPerMillion: z.number().min(0).required(),
+    outputPerMillion: z.number().min(0).required(),
+    cacheReadPerMillion: z.number().min(0).required(),
+    cacheWritePerMillion: z.number().min(0).required(),
+  }).default(undefined as never),
   libraryMode: z.union(["off", "read-only", "read-write"] as const).default("off"),
   tenant: z.string().required(),
   project: z.string().required(),
@@ -34,6 +40,9 @@ export const Config: z<DshHarness2Config> = z.object({
 
 /** Register the Harness² host service and its explicit model-facing tool. */
 export function apply(ctx: Context, config: DshHarness2Config): void {
+  if (config.maxCost !== undefined && config.pricing === undefined) {
+    throw new Error("harness2: maxCost requires explicit provider token pricing");
+  }
   const runtime = new DshHarness2Runtime(ctx, config);
   ctx.provide("harness2", runtime);
   ctx.tools.register(defineTool({
@@ -56,6 +65,10 @@ export function apply(ctx: Context, config: DshHarness2Config): void {
           rollouts: { type: "integer", required: true },
           fallbacks: { type: "array", required: true, items: { type: "string" } },
           errors: { type: "array", required: true, items: { type: "string" } },
+          inputTokens: { type: "integer", required: true },
+          outputTokens: { type: "integer", required: true },
+          cachedTokens: { type: "integer", required: true },
+          estimatedCost: { type: "number", required: true },
         },
       },
       render: (_args, value) => [{
@@ -81,6 +94,10 @@ export function apply(ctx: Context, config: DshHarness2Config): void {
         rollouts: result.baseRuns.length + result.stages.length,
         fallbacks: [...result.fallbacks],
         errors: [...result.errors],
+        inputTokens: result.totalUsage.inputTokens,
+        outputTokens: result.totalUsage.outputTokens,
+        cachedTokens: result.totalUsage.cachedTokens,
+        estimatedCost: result.totalUsage.cost,
       };
     },
     presentCall: (args) => ({

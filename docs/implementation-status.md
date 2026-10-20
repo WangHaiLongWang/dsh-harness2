@@ -16,9 +16,12 @@
 - 通过 `ctx.agents.create()` 建立临时 production Agent。
 - 继承父 Agent 模型与 preset revision。
 - 在 agent-scoped `SystemPrompt` 中物化 C1–C4 候选内容。
+- C5 `subagents/<name>/AGENT.md` 物化为 scoped delegation tool，复用 DSH `spawn` provider。
+- C6 `skills/<name>/SKILL.md` 物化为 scoped runtime skill。
 - 从 DSH Session 事件提取交付物、轨迹、token usage 和工具错误。
 - Probe Agent 完成、失败或取消后的资源回收。
 - editor、selector、reflector 与 executor token 的统一预算统计。
+- 显式 per-million pricing 和跨 editor/rollout 的货币硬预算；未配置价格时不推断费用。
 - 本地 DSH 源码链接脚本及 Web profile `link:` 安装。
 
 ## 验证结果
@@ -26,7 +29,7 @@
 | 检查 | 结果 |
 |---|---|
 | TypeScript strict build | 通过 |
-| 自动化测试 | 17/17 通过 |
+| 自动化测试 | 23/23 通过 |
 | 生产 AgentLoop 单 Probe 集成 | 通过 |
 | 生产 AgentLoop 完整 `k=1` 链路 | 通过，3 次编辑 + 4 次 rollout |
 | 临时 Agent 回收 | 通过，运行后只保留父 Agent |
@@ -34,20 +37,22 @@
 | npm pack dry-run | 通过，35 个发布文件 |
 | DSH bundle 识别 | 通过，dump-config 中可见且默认禁用 |
 | 正在运行的 Web 服务 | 在线，未带认证访问返回预期的 HTTP 401 |
+| Web profile 真实 `k=1` 冒烟 | 通过，`harness2_run` 仅调用一次，工具结果为 `HARNESS2_SMOKE_OK` |
+
+真实冒烟采用 `parallel / k=1 / library=off`，审计摘要为 `completed`，包含 1 个 Base rollout 和 INV、DOM、COMPOSE 三个阶段；采用 `final1`，无 fallback、无错误、四个 rollout 均交付成功。插件链路统计 17,670 个 uncached input tokens、1,719 个 output tokens、28,928 个 cached tokens；父 Session 另统计 10,473/177 input/output tokens。该数字说明即使 `k=1` 也属于高成本路径，维持显式工具触发是必要的。
 
 ## 当前限制
 
-- 原生物化只支持 C1 System prompt、C2 Guardrails、C3 Memory、C4 Tool guidance。
-- C5 Subagents、C6 Skills、C7 Scripts、C8 middleware plugin 会被原生 adapter 拒绝，避免生成“看起来成功但实际未挂载”的候选。
-- DSH Session 的统一 usage 不提供费用，`maxCost` 在原生路径中暂时无法形成真实 provider 费用硬门槛；token 硬门槛已生效。
+- 原生物化支持 C1–C6；C5/C6 都使用 DSH scoped registration，随 probe Agent 回收。
+- C7 Scripts、C8 middleware plugin 会被原生 adapter 拒绝，避免生成“看起来成功但实际未隔离/挂载”的候选。
+- DSH Session 的统一 usage 不提供价格；部署方需要填入 provider 费率后才可启用 `maxCost`。只填 `maxCost` 会拒绝加载，避免产生虚假的费用保护。
 - 当前使用父 Agent 的模型同时承担 executor 和 editor。独立 editor route 尚未开放为配置。
-- Web profile 已安装 bundle，但 `harness2` 行保持 `disabled: true`；尚未产生真实模型费用。
+- Web profile 已安装并启用 `harness2`。普通任务不会自动运行 Harness²；只有显式调用 `harness2_run` 才产生额外调用。
 - 尚未使用真实业务任务进行质量 A/B，因此不能宣称质量提升。
 
 ## 下一阶段
 
-1. 在 Plugins 页面启用 `harness2`，以 `k=1`、`libraryMode=off` 运行一个低风险任务。
-2. 接入 provider 价格或 telemetry，形成真实费用硬门槛。
-3. 通过 DSH preset/skill/sandbox 接口实现 C5–C7；C8 需要额外的插件签名和权限策略。
-4. 冻结 10–20 个任务，比较 Base、Best-of-4 和 Harness² `k=1`。
-5. 质量和成本信号成立后再启用 `k>1` 及经验库写入。
+1. 从实际 provider 账单确认当前 route 的费率并写入 profile；代码侧货币硬门槛已经完成。
+2. 为 C7 设计隔离资产目录、sandbox 执行和原子清理；C8 需要额外的插件签名和权限策略。
+3. 冻结 10–20 个任务，比较 Base、Best-of-4 和 Harness² `k=1`。
+4. 质量和成本信号成立后再启用 `k>1` 及经验库写入。

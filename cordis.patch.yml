@@ -9,7 +9,6 @@
         maxParallelProposals: 2
         maxParallelRollouts: 2
         maxTotalTokens: 1000000
-        maxCost: 20
         libraryMode: off
         tenant: default
         project: default

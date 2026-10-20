@@ -6,6 +6,7 @@ import type { Harness2Policy, Harness2Result, RecursionMode, TaskContext } from 
 import { DshAgentRunner } from "./agent-runner.js";
 import { DshModelEditor } from "./model-editor.js";
 import { NativeDshSubstrate } from "./substrate.js";
+import type { DshTokenPricing } from "./pricing.js";
 
 export interface DshHarness2Config {
   mode: RecursionMode;
@@ -14,7 +15,8 @@ export interface DshHarness2Config {
   maxParallelProposals: number;
   maxParallelRollouts: number;
   maxTotalTokens: number;
-  maxCost: number;
+  maxCost?: number;
+  pricing?: DshTokenPricing;
   libraryMode: "off" | "read-only" | "read-write";
   tenant: string;
   project: string;
@@ -55,13 +57,19 @@ export class DshHarness2Runtime {
       maxParallelProposals: this.config.maxParallelProposals,
       maxParallelRollouts: this.config.maxParallelRollouts,
       maxTotalTokens: this.config.maxTotalTokens,
-      maxCost: this.config.maxCost,
+      maxCost: this.config.maxCost ?? Number.POSITIVE_INFINITY,
       libraryMode: this.config.libraryMode,
       scope,
     };
     const orchestrator = new Harness2Orchestrator({
-      substrate: new NativeDshSubstrate(parent, new DshAgentRunner(this.ctx)),
-      editor: new DshModelEditor(this.ctx, parent, options.signal, this.config.timeoutMs),
+      substrate: new NativeDshSubstrate(parent, new DshAgentRunner(this.ctx, this.config.pricing)),
+      editor: new DshModelEditor(
+        this.ctx,
+        parent,
+        options.signal,
+        this.config.timeoutMs,
+        this.config.pricing,
+      ),
       experienceStore: new FileExperienceStore(`${this.config.dataDir}/library`),
       runStore: new FileRunStore(`${this.config.dataDir}/runs`),
     });

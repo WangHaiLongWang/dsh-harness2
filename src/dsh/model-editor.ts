@@ -12,8 +12,9 @@ import type {
   SelectionCandidate,
   TaskContext,
 } from "../types.js";
+import { runUsageOf, type DshTokenPricing } from "./pricing.js";
 
-const EDITOR_SYSTEM = `You edit an agent harness from execution evidence. Return exactly one JSON object with all four keys system.md, guardrails.md, memory.md, and tool-guidance.md, mapped to complete UTF-8 file contents. Keep unchanged files. This deployment supports only those four text components. Never include prose or Markdown fences.`;
+const EDITOR_SYSTEM = `You edit an agent harness from execution evidence. Return exactly one JSON object mapping complete UTF-8 file contents. Preserve every unchanged file. Supported paths are system.md, guardrails.md, memory.md, tool-guidance.md, skills/<name>/SKILL.md, and subagents/<name>/AGENT.md. Skill and subagent names use lowercase letters, digits, hyphen, or underscore. Do not create scripts or plugins in this deployment. Never include prose or Markdown fences.`;
 
 function json(value: unknown): string {
   return JSON.stringify(value, null, 2);
@@ -67,6 +68,7 @@ export class DshModelEditor implements HarnessEditor {
     private readonly parent: Agent,
     private readonly signal?: AbortSignal,
     private readonly timeoutMs = 3_600_000,
+    private readonly pricing?: DshTokenPricing,
   ) {}
 
   setUsageSink(sink: (usage: RunUsage) => void): void {
@@ -91,14 +93,7 @@ export class DshModelEditor implements HarnessEditor {
     for await (const chunk of this.ctx.llm.stream(options)) assembler.push(chunk);
     const usage = assembler.usage;
     if (usage) {
-      this.#usageSink?.({
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        cachedTokens: (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0),
-        cost: 0,
-        toolCalls: 0,
-        toolErrors: 0,
-      });
+      this.#usageSink?.(runUsageOf(usage, this.pricing));
     }
     const blocks = assembler.blocks();
     const last = blocks.at(-1);
