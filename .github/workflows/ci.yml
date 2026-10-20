@@ -32,7 +32,7 @@ jobs:
           ref: 86a402200d95fecef4529d969836f1fe13c6cb0d
           path: deepseek-harness
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22.21.1
           cache: npm
