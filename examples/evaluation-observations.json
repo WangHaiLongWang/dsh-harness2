@@ -1,0 +1,8 @@
+[
+  {"taskId":"a","seed":1,"method":"base","score":50,"delivered":true,"latencyMs":100,"cost":1,"inputTokens":10,"outputTokens":2,"cachedTokens":1,"toolCalls":2,"toolErrors":0},
+  {"taskId":"a","seed":1,"method":"harness2-k1","score":60,"delivered":true,"latencyMs":500,"cost":3,"inputTokens":40,"outputTokens":5,"cachedTokens":8,"toolCalls":2,"toolErrors":0},
+  {"taskId":"b","seed":1,"method":"base","score":40,"delivered":true,"latencyMs":100,"cost":1,"inputTokens":10,"outputTokens":2,"cachedTokens":1,"toolCalls":2,"toolErrors":0},
+  {"taskId":"b","seed":1,"method":"harness2-k1","score":45,"delivered":true,"latencyMs":500,"cost":3,"inputTokens":40,"outputTokens":5,"cachedTokens":8,"toolCalls":2,"toolErrors":0},
+  {"taskId":"c","seed":1,"method":"base","score":70,"delivered":true,"latencyMs":100,"cost":1,"inputTokens":10,"outputTokens":2,"cachedTokens":1,"toolCalls":2,"toolErrors":0},
+  {"taskId":"c","seed":1,"method":"harness2-k1","score":72,"delivered":true,"latencyMs":500,"cost":3,"inputTokens":40,"outputTokens":5,"cachedTokens":8,"toolCalls":2,"toolErrors":0}
+]

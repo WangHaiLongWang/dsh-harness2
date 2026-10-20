@@ -3,3 +3,8 @@ dist/
 runs/
 .env
 *.log
+.DS_Store
+.idea/
+.vscode/
+coverage/
+*.tgz

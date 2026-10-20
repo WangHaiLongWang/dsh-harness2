@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Harness² 递归改进",
+    "description": "显式触发的 Propose-Probe-Compose 适配，包含预算、审计和 DSH 作用域组件。"
+  }
+}

@@ -40,7 +40,7 @@
 | 生产 AgentLoop 完整 `k=1` 链路 | 通过，3 次编辑 + 4 次 rollout |
 | 临时 Agent 回收 | 通过，运行后只保留父 Agent |
 | npm 安全审计 | 0 vulnerabilities |
-| npm pack dry-run | 通过，35 个发布文件 |
+| npm pack dry-run | 通过；发布内容以当前 `npm pack --dry-run` 输出为准 |
 | DSH bundle 识别 | 通过，dump-config 中可见且默认禁用 |
 | 正在运行的 Web 服务 | 在线，未带认证访问返回预期的 HTTP 401 |
 | Web profile 真实 `k=1` 冒烟 | 通过，`harness2_run` 仅调用一次，工具结果为 `HARNESS2_SMOKE_OK` |

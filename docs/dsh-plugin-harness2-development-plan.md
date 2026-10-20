@@ -166,7 +166,8 @@ Harness² Orchestrator
 
 ```text
 plugins/dsh-plugin-harness2/
-├── plugin.yaml                 # 插件声明、版本、能力、权限
+├── package.json                # npm/DSH Bundle 声明、版本和兼容依赖
+├── cordis.patch.yml            # 默认关闭的 DSH profile patch
 ├── src/
 │   ├── index.*                 # 统一安装入口
 │   ├── cordis/

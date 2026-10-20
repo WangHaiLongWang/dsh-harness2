@@ -1,0 +1,15 @@
+- id: harness2
+  name: dsh-plugin-harness2
+  disabled: false
+  config:
+    mode: parallel
+    k: 1
+    timeoutMs: 3600000
+    maxParallelProposals: 2
+    maxParallelRollouts: 2
+    maxTotalTokens: 100000
+    libraryMode: off
+    enableScripts: false
+    tenant: default
+    project: default
+    dataDir: !!js dshHomePath('harness2')

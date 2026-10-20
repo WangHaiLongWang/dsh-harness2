@@ -2,6 +2,22 @@
   "name": "dsh-plugin-harness2",
   "version": "0.1.0",
   "description": "Recursive Harness² orchestration plugins for DSH/Cordis",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "cordis",
+    "llm-agent",
+    "harness2",
+    "recursive-self-improvement"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WangHaiLongWang/dsh-harness2.git"
+  },
+  "bugs": {
+    "url": "https://github.com/WangHaiLongWang/dsh-harness2/issues"
+  },
+  "homepage": "https://github.com/WangHaiLongWang/dsh-harness2#readme",
   "type": "module",
   "main": "dist/src/dsh/index.js",
   "types": "dist/src/dsh/index.d.ts",
@@ -15,6 +31,7 @@
       "import": "./dist/src/index.js"
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -25,6 +42,14 @@
   "files": [
     "dist/src",
     "README.md",
+    "README.en.md",
+    "LICENSE",
+    "NOTICE",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "docs/*.md",
+    "examples/*",
+    "locale/*.json",
     "cordis.patch.yml"
   ],
   "scripts": {
@@ -34,12 +59,18 @@
     "test": "npm run build && node --test dist/tests/**/*.test.js",
     "demo": "npm run build && node dist/src/demo.js",
     "eval:report": "npm run build && node scripts/evaluate.mjs",
-    "check": "npm run build && npm test"
+    "check:repo": "node scripts/check-repository.mjs",
+    "check": "npm run check:repo && npm test && npm audit --audit-level=high --registry=https://registry.npmjs.org && npm pack --dry-run",
+    "prepack": "npm run build"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
-  "license": "Apache-2.0",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.5-alpha.2",
     "@deepseek-ai/dsh-agent": "0.2.1-alpha.4",

@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: dsh-harness2
+
+      - uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: 86a402200d95fecef4529d969836f1fe13c6cb0d
+          path: deepseek-harness
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.21.1
+          cache: npm
+          cache-dependency-path: dsh-harness2/package-lock.json
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.28.5
+
+      - name: Build DSH compatibility baseline
+        shell: bash
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build:artifacts
+        working-directory: deepseek-harness
+
+      - name: Install plugin dependencies
+        run: npm ci
+        working-directory: dsh-harness2
+
+      - name: Link DSH compatibility baseline
+        run: npm run link:dsh -- ../deepseek-harness
+        working-directory: dsh-harness2
+
+      - name: Repository checks
+        run: npm run check:repo
+        working-directory: dsh-harness2
+
+      - name: Build and test
+        run: npm test
+        working-directory: dsh-harness2
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=high --registry=https://registry.npmjs.org
+        working-directory: dsh-harness2
+
+      - name: Verify package contents
+        run: npm pack --dry-run
+        working-directory: dsh-harness2
+
+      - name: Verify evaluation release gate
+        run: npm run eval:report -- examples/evaluation-observations.json harness2-k1
+        working-directory: dsh-harness2

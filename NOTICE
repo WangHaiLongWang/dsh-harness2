@@ -1,0 +1,15 @@
+dsh-plugin-harness2
+Copyright 2026 dsh-plugin-harness2 contributors
+
+This project implements ideas described in “Harness²: Recursive Agent
+Harnessing for an Open World” and interoperates with DeepSeek Harness.
+
+Harness² source and paper:
+  https://github.com/google-research/harness2
+  https://arxiv.org/abs/2610.14224
+
+DeepSeek Harness:
+  https://github.com/deepseek-ai/deepseek-harness
+
+Google, DeepSeek, and related marks belong to their respective owners. This
+community project is not an officially supported product of either organization.
