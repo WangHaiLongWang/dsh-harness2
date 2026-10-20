@@ -22,11 +22,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           path: dsh-harness2
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: deepseek-ai/deepseek-harness
           ref: 86a402200d95fecef4529d969836f1fe13c6cb0d
