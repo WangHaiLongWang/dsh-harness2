@@ -121,6 +121,10 @@ export interface HarnessEditor {
   reflect(request: ReflectionRequest): Promise<Reflection | null>;
 }
 
+export interface UsageAwareHarnessEditor extends HarnessEditor {
+  setUsageSink(sink: (usage: RunUsage) => void): void;
+}
+
 export interface StageEvidence {
   label: string;
   dimension: CandidateDimension | "COMPOSE" | "BASE";

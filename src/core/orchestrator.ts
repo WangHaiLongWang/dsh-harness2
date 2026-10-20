@@ -17,6 +17,7 @@ import type {
   RunStore,
   StageEvidence,
   TaskContext,
+  UsageAwareHarnessEditor,
 } from "../types.js";
 
 const MAX_EDIT_ATTEMPTS = 2;
@@ -108,6 +109,8 @@ export class Harness2Orchestrator {
     assertPolicy(policy);
     const runId = `h2-${this.#id()}`;
     const budget = new BudgetTracker(policy.maxTotalTokens, policy.maxCost);
+    const usageAware = this.#editor as Partial<UsageAwareHarnessEditor>;
+    usageAware.setUsageSink?.((usage) => budget.addUsage(usage));
     const errors: string[] = [];
     const fallbacks: string[] = [];
     const stages: StageEvidence[] = [];

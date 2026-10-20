@@ -18,7 +18,10 @@ export class BudgetTracker {
   }
 
   add(run: RunArtifact): void {
-    const usage = run.usage;
+    this.addUsage(run.usage);
+  }
+
+  addUsage(usage: RunUsage): void {
     this.#usage = addUsage(this.#usage, usage);
     const tokens = this.#usage.inputTokens + this.#usage.outputTokens;
     if (tokens > this.#maxTokens) {
