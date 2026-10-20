@@ -38,7 +38,7 @@ jobs:
           cache: npm
           cache-dependency-path: dsh-harness2/package-lock.json
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.28.5
 
