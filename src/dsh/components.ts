@@ -22,6 +22,7 @@ export function validateNativeComponents(ctx: Context, tree: HarnessTree): Harne
   const toolNames = new Map<string, string>();
   for (const file of Object.keys(tree)) {
     if (["system.md", "guardrails.md", "memory.md", "tool-guidance.md"].includes(file)) continue;
+    if (file.startsWith("scripts/")) continue;
     const skill = SKILL_FILE.exec(file);
     if (skill) {
       if (ctx.get("skills") === undefined) issues.push({ path: file, code: "dsh-skill-unavailable", message: "ctx.skills is not composed" });

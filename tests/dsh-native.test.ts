@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Context } from "@deepseek-ai/cordis";
+import { mkdtemp, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { LlmAdapter, type GenerateOptions, type StreamChunk } from "@deepseek-ai/dsh-llm";
 import { SessionId } from "@deepseek-ai/dsh-session";
 import {
@@ -234,7 +237,7 @@ test("C6 skill is registered in the isolated Agent scope", async () => {
   }
 });
 
-test("C5 capability validation accepts AGENT.md only with spawn and still rejects C7 scripts", () => {
+test("C5 capability validation accepts AGENT.md when spawn is available", () => {
   const ctx = new Context();
   try {
     ctx.provide("subagents", { getProvider: (name: string) => name === "spawn" ? {} : undefined } as never);
@@ -243,7 +246,7 @@ test("C5 capability validation accepts AGENT.md only with spawn and still reject
       "subagents/reviewer/AGENT.md": "Review the work.",
       "scripts/check.py": "print('unsafe')",
     });
-    assert.deepEqual(issues.map((issue) => issue.code), ["unsupported-dsh-component"]);
+    assert.deepEqual(issues, []);
   } finally {
     void ctx.fiber.dispose();
   }
@@ -279,6 +282,64 @@ test("C5 AGENT.md becomes an isolated Agent-scoped delegation tool", async () =>
     });
     assert.ok(adapter.requests[0]?.tools?.some((tool) => tool.name === "harness2_agent_reviewer"));
     assert.equal(ctx.tools.get("harness2_agent_reviewer"), undefined, "scoped tool must disappear with probe Agent");
+  } finally {
+    await ctx.fiber.dispose();
+  }
+});
+
+test("C7 stages a fixed scoped script tool and removes its asset directory", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "harness2-script-test-"));
+  const ctx = new Context();
+  try {
+    await mountAgentLoopTestDependencies(ctx);
+    ctx.provide("shell", {
+      resolve: (request: object) => request,
+      execute: async () => { throw new Error("script should not execute in schema test"); },
+    } as never);
+    ctx.provide("sandboxPolicy", {
+      resolve: () => ({ mode: "read-only", workspaceRoot: root }),
+    } as never);
+    const adapter = new RecordingAdapter();
+    ctx.llm.registerAdapter(["mock"], adapter);
+    await ctx.plugin(harness2Plugin, {
+      mode: "parallel", k: 1, timeoutMs: 10_000,
+      maxParallelProposals: 2, maxParallelRollouts: 2,
+      maxTotalTokens: 10_000, libraryMode: "off",
+      tenant: "test", project: "test", dataDir: root,
+    });
+    const harness = await mountAgentLoopTestHarness(ctx);
+    const parent = await harness.create(SessionId("harness2-script-parent"), { provider: "mock", model: "mock" });
+    const runner = new DshAgentRunner(ctx, undefined, {
+      enabled: true,
+      assetRoot: path.join(root, "assets"),
+      timeoutMs: 1_000,
+      outputMaxBytes: 10_000,
+    });
+    await runner.run({
+      parent,
+      task: { taskId: "script", domain: "test", prompt: "inspect helper" },
+      tree: {
+        "system.md": "", "guardrails.md": "", "memory.md": "", "tool-guidance.md": "",
+        "scripts/check.py": "print('ok')\n",
+      },
+      runId: "script-run", stage: "probe", timeoutMs: 10_000,
+    });
+    assert.ok(adapter.requests[0]?.tools?.some((tool) => tool.name === "harness2_script_check"));
+    await assert.rejects(stat(path.join(root, "assets", "script-run")), /ENOENT/);
+    assert.equal(ctx.tools.get("harness2_script_check"), undefined);
+  } finally {
+    await ctx.fiber.dispose();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("C7 scripts fail validation while the deployment switch is off", async () => {
+  const ctx = new Context();
+  try {
+    const runner = new DshAgentRunner(ctx);
+    assert.deepEqual(runner.validate({ "scripts/check.py": "print('ok')" }).map((issue) => issue.code), [
+      "dsh-scripts-disabled",
+    ]);
   } finally {
     await ctx.fiber.dispose();
   }

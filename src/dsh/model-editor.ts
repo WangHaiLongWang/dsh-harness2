@@ -14,7 +14,9 @@ import type {
 } from "../types.js";
 import { runUsageOf, type DshTokenPricing } from "./pricing.js";
 
-const EDITOR_SYSTEM = `You edit an agent harness from execution evidence. Return exactly one JSON object mapping complete UTF-8 file contents. Preserve every unchanged file. Supported paths are system.md, guardrails.md, memory.md, tool-guidance.md, skills/<name>/SKILL.md, and subagents/<name>/AGENT.md. Skill and subagent names use lowercase letters, digits, hyphen, or underscore. Do not create scripts or plugins in this deployment. Never include prose or Markdown fences.`;
+function editorSystem(enableScripts: boolean): string {
+  return `You edit an agent harness from execution evidence. Return exactly one JSON object mapping complete UTF-8 file contents. Preserve every unchanged file. Supported paths are system.md, guardrails.md, memory.md, tool-guidance.md, skills/<name>/SKILL.md, and subagents/<name>/AGENT.md.${enableScripts ? " You may also create standalone scripts/<name>.py helpers; they receive optional stdin and must write their result to stdout." : " Do not create scripts in this deployment."} Skill and subagent names use lowercase letters, digits, hyphen, or underscore. Do not create middleware plugins. Never include prose or Markdown fences.`;
+}
 
 function json(value: unknown): string {
   return JSON.stringify(value, null, 2);
@@ -69,6 +71,7 @@ export class DshModelEditor implements HarnessEditor {
     private readonly signal?: AbortSignal,
     private readonly timeoutMs = 3_600_000,
     private readonly pricing?: DshTokenPricing,
+    private readonly enableScripts = false,
   ) {}
 
   setUsageSink(sink: (usage: RunUsage) => void): void {
@@ -106,14 +109,14 @@ export class DshModelEditor implements HarnessEditor {
       ? "Improve reusable execution behavior: planning, tools, context, verification, or delegation."
       : "Improve domain procedure, constraints, and artifact requirements without embedding task-specific facts.";
     return parseObject(await this.#complete(
-      EDITOR_SYSTEM,
+      editorSystem(this.enableScripts),
       `${focus}\nUse concrete behavioral evidence. KEEP_BASE is represented by returning currentHarness unchanged.\n\n${json(evidence(request))}`,
     ));
   }
 
   async compose(request: CompositionRequest): Promise<HarnessTree> {
     return parseObject(await this.#complete(
-      EDITOR_SYSTEM,
+      editorSystem(this.enableScripts),
       `Compose one successor harness. Merge only changes supported by trajectory evidence; preserve the current harness when evidence is weak. Candidate evidence:\n${json({ ...evidence(request), candidates: request.candidates })}`,
     ));
   }

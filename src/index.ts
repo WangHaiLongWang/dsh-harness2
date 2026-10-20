@@ -6,3 +6,4 @@ export * from "./adapters/dsh-bridge.js";
 export * from "./cordis/plugins.js";
 export * from "./storage/file-store.js";
 export * from "./storage/memory-store.js";
+export * from "./eval/metrics.js";

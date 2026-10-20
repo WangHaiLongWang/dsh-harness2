@@ -18,10 +18,12 @@
 - 在 agent-scoped `SystemPrompt` 中物化 C1–C4 候选内容。
 - C5 `subagents/<name>/AGENT.md` 物化为 scoped delegation tool，复用 DSH `spawn` provider。
 - C6 `skills/<name>/SKILL.md` 物化为 scoped runtime skill。
+- C7 `scripts/<name>.py` 的受控物化：run-scoped 资产目录、固定 stdin 工具、DSH shell/sandbox、完成后清理；部署开关默认关闭。
 - 从 DSH Session 事件提取交付物、轨迹、token usage 和工具错误。
 - Probe Agent 完成、失败或取消后的资源回收。
 - editor、selector、reflector 与 executor token 的统一预算统计。
 - 显式 per-million pricing 和跨 editor/rollout 的货币硬预算；未配置价格时不推断费用。
+- 配对评估报告：Win/Tie/Loss、回退率、交付率、工具错误率、token/费用/时延、Gain-per-Cost、bootstrap 95% CI 和发布门槛。
 - 本地 DSH 源码链接脚本及 Web profile `link:` 安装。
 
 ## 验证结果
@@ -29,7 +31,7 @@
 | 检查 | 结果 |
 |---|---|
 | TypeScript strict build | 通过 |
-| 自动化测试 | 23/23 通过 |
+| 自动化测试 | 28/28 通过 |
 | 生产 AgentLoop 单 Probe 集成 | 通过 |
 | 生产 AgentLoop 完整 `k=1` 链路 | 通过，3 次编辑 + 4 次 rollout |
 | 临时 Agent 回收 | 通过，运行后只保留父 Agent |
@@ -43,8 +45,9 @@
 
 ## 当前限制
 
-- 原生物化支持 C1–C6；C5/C6 都使用 DSH scoped registration，随 probe Agent 回收。
-- C7 Scripts、C8 middleware plugin 会被原生 adapter 拒绝，避免生成“看起来成功但实际未隔离/挂载”的候选。
+- 原生物化支持 C1–C7；C5/C6 使用 DSH scoped registration，C7 使用 run-scoped 资产目录，均随 probe Agent 回收。
+- C7 默认关闭。DSH sandbox 当前不承诺网络隔离，不能将其视为不可信 Python 的完整安全边界；缺少 shell 或 sandbox policy 时拒绝候选。
+- C8 middleware plugin 会被原生 adapter 拒绝，避免模型生成代码直接进入 Host 工具循环。
 - DSH Session 的统一 usage 不提供价格；部署方需要填入 provider 费率后才可启用 `maxCost`。只填 `maxCost` 会拒绝加载，避免产生虚假的费用保护。
 - 当前使用父 Agent 的模型同时承担 executor 和 editor。独立 editor route 尚未开放为配置。
 - Web profile 已安装并启用 `harness2`。普通任务不会自动运行 Harness²；只有显式调用 `harness2_run` 才产生额外调用。
@@ -53,6 +56,6 @@
 ## 下一阶段
 
 1. 从实际 provider 账单确认当前 route 的费率并写入 profile；代码侧货币硬门槛已经完成。
-2. 为 C7 设计隔离资产目录、sandbox 执行和原子清理；C8 需要额外的插件签名和权限策略。
+2. 为 C7 增加网络隔离后再评估生产启用；C8 需要额外的插件签名和权限策略。
 3. 冻结 10–20 个任务，比较 Base、Best-of-4 和 Harness² `k=1`。
 4. 质量和成本信号成立后再启用 `k>1` 及经验库写入。

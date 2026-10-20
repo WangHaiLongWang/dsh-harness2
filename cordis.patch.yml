@@ -9,6 +9,9 @@
         maxParallelProposals: 2
         maxParallelRollouts: 2
         maxTotalTokens: 1000000
+        enableScripts: false
+        scriptTimeoutMs: 30000
+        scriptOutputMaxBytes: 1000000
         libraryMode: off
         tenant: default
         project: default

@@ -12,6 +12,7 @@ const links = {
   "@deepseek-ai/dsh-brand": "packages/util/brand",
   "@deepseek-ai/dsh-llm": "packages/llm/llm",
   "@deepseek-ai/dsh-session": "packages/core/session",
+  "@deepseek-ai/dsh-shell": "packages/shell/shell",
   "@deepseek-ai/dsh-skill": "packages/skill/skill",
   "@deepseek-ai/dsh-subagent": "packages/subagent/subagent",
   "@deepseek-ai/dsh-system-prompt": "packages/core/system-prompt",

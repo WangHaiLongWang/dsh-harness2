@@ -17,6 +17,9 @@ export interface DshHarness2Config {
   maxTotalTokens: number;
   maxCost?: number;
   pricing?: DshTokenPricing;
+  enableScripts?: boolean;
+  scriptTimeoutMs?: number;
+  scriptOutputMaxBytes?: number;
   libraryMode: "off" | "read-only" | "read-write";
   tenant: string;
   project: string;
@@ -62,13 +65,23 @@ export class DshHarness2Runtime {
       scope,
     };
     const orchestrator = new Harness2Orchestrator({
-      substrate: new NativeDshSubstrate(parent, new DshAgentRunner(this.ctx, this.config.pricing)),
+      substrate: new NativeDshSubstrate(parent, new DshAgentRunner(
+        this.ctx,
+        this.config.pricing,
+        {
+          enabled: this.config.enableScripts ?? false,
+          assetRoot: `${this.config.dataDir}/assets`,
+          timeoutMs: this.config.scriptTimeoutMs ?? 30_000,
+          outputMaxBytes: this.config.scriptOutputMaxBytes ?? 1_000_000,
+        },
+      )),
       editor: new DshModelEditor(
         this.ctx,
         parent,
         options.signal,
         this.config.timeoutMs,
         this.config.pricing,
+        this.config.enableScripts ?? false,
       ),
       experienceStore: new FileExperienceStore(`${this.config.dataDir}/library`),
       runStore: new FileRunStore(`${this.config.dataDir}/runs`),

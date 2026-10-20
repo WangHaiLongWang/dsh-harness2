@@ -8,6 +8,7 @@ import type { HarnessTree, HarnessValidationIssue, RunArtifact, RunUsage, TaskCo
 import { fingerprintTree } from "../core/harness-tree.js";
 import { priceUsage, type DshTokenPricing } from "./pricing.js";
 import { installNativeComponents, validateNativeComponents } from "./components.js";
+import { stageScripts, validateScriptComponents, type ScriptPolicy } from "./script-assets.js";
 
 const OVERLAY_SECTION = "harness2:overlay";
 
@@ -95,10 +96,24 @@ export class DshAgentRunner {
   constructor(
     private readonly ctx: Context,
     private readonly pricing?: DshTokenPricing,
+    private readonly scripts: ScriptPolicy = {
+      enabled: false,
+      assetRoot: "",
+      timeoutMs: 30_000,
+      outputMaxBytes: 1_000_000,
+    },
   ) {}
 
   validate(tree: HarnessTree): HarnessValidationIssue[] {
-    return validateNativeComponents(this.ctx, tree);
+    const issues = [
+      ...validateNativeComponents(this.ctx, tree),
+      ...validateScriptComponents(tree, this.scripts),
+    ];
+    if (this.scripts.enabled && Object.keys(tree).some((file) => file.startsWith("scripts/"))) {
+      if (!this.ctx.get("shell")) issues.push({ code: "dsh-shell-unavailable", message: "C7 requires ctx.shell" });
+      if (!this.ctx.get("sandboxPolicy")) issues.push({ code: "dsh-sandbox-policy-unavailable", message: "C7 refuses unconfined execution without ctx.sandboxPolicy" });
+    }
+    return issues;
   }
 
   async run(request: DshAgentRunRequest): Promise<RunArtifact> {
@@ -112,7 +127,10 @@ export class DshAgentRunner {
     const sessionId = SessionId(`harness2-${randomUUID()}`);
     const cwd = parent.session.header.cwd;
     const overlay = overlayText(request.tree);
-    const handle = await this.ctx.agents.create({
+    const stagedScripts = await stageScripts(this.ctx, request.tree, this.scripts, request.runId);
+    let handle;
+    try {
+      handle = await this.ctx.agents.create({
       sessionId,
       parentAgent: parent,
       agentOptions,
@@ -135,9 +153,14 @@ export class DshAgentRunner {
           });
         }
         installNativeComponents(this.ctx, agentCtx, request.tree);
+        stagedScripts.install(agentCtx);
         agentCtx.tools.restrict({ deny: ["harness2_run"] });
       },
-    });
+      });
+    } catch (error) {
+      await stagedScripts.dispose();
+      throw error;
+    }
 
     const cancel = (): void => {
       handle.agent.cancel({ kind: "hook", reason: "Harness² rollout deadline or owner cancellation" });
@@ -178,7 +201,9 @@ export class DshAgentRunner {
       };
     } finally {
       signal.removeEventListener("abort", cancel);
-      await handle.dispose();
+      const cleanup = await Promise.allSettled([handle.dispose(), stagedScripts.dispose()]);
+      const failures = cleanup.flatMap((result) => result.status === "rejected" ? [result.reason] : []);
+      if (failures.length > 0) throw new AggregateError(failures, "Harness² rollout cleanup failed");
     }
   }
 }
