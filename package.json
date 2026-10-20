@@ -30,6 +30,14 @@
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js"
     },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./types": {
+      "types": "./dist/src/panel/types.d.ts",
+      "import": "./dist/src/panel/types.js"
+    },
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json"
@@ -37,10 +45,24 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-store",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-primitives",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ],
+      "platform": "web"
     }
   },
   "files": [
     "dist/src",
+    "lib/client.js",
+    "lib/types/**/*.d.ts",
     "README.md",
     "README.en.md",
     "LICENSE",
@@ -55,7 +77,8 @@
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "link:dsh": "node scripts/link-dsh.mjs",
-    "build": "npm run clean && tsc -p tsconfig.json",
+    "build": "npm run clean && tsc -p tsconfig.json && npm run build:panel",
+    "build:panel": "node scripts/build-panel.mjs",
     "test": "npm run build && node --test dist/tests/**/*.test.js",
     "demo": "npm run build && node dist/src/demo.js",
     "eval:report": "npm run build && node scripts/evaluate.mjs",
@@ -76,6 +99,13 @@
     "@deepseek-ai/dsh-agent": "0.2.1-alpha.4",
     "@deepseek-ai/dsh-agent-preset-registry": "0.2.1-alpha.4",
     "@deepseek-ai/dsh-brand": "0.2.1-alpha.4",
+    "@deepseek-ai/dsh-client-locale": "0.2.1-alpha.4",
+    "@deepseek-ai/dsh-client-store": "0.2.1-alpha.4",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.1-alpha.4",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.1-alpha.4",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.2.1-alpha.4",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.2.1-alpha.4",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.1-alpha.4",
     "@deepseek-ai/dsh-llm": "0.2.1-alpha.4",
     "@deepseek-ai/dsh-session": "0.2.1-alpha.4",
     "@deepseek-ai/dsh-shell": "0.2.1-alpha.4",
@@ -98,6 +128,13 @@
     "@deepseek-ai/dsh-brand": {
       "optional": true
     },
+    "@deepseek-ai/dsh-client-locale": { "optional": true },
+    "@deepseek-ai/dsh-client-store": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-layout": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-primitives": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-renderer": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-sidebar": { "optional": true },
+    "@deepseek-ai/dsh-client-ui-slots": { "optional": true },
     "@deepseek-ai/dsh-llm": {
       "optional": true
     },
@@ -119,6 +156,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "typescript": "^5.7.0"
   }
 }

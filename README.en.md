@@ -14,6 +14,7 @@ A recursive Harness² plugin for DeepSeek Harness (DSH/Cordis). For one explicit
 - Native DSH materialization for C1–C7: prompts, guardrails, memory, tool guidance, subagents, skills, and gated Python scripts.
 - Token and explicit-price budgets, timeouts, cancellation, fallbacks, audit records, and redacted lifecycle events.
 - Tenant/project/domain-scoped experience storage and paired evaluation with bootstrap confidence intervals.
+- Built-in DSH Web dashboard with the Base → INV/DOM → Compose pipeline and file/line Harness Diff.
 
 Ordinary DSH tasks are unchanged. Recursion starts only through an explicit `harness2_run` call. C7 scripts are disabled by default, and model-authored C8 middleware is never loaded.
 
@@ -58,7 +59,7 @@ npm run eval:report -- observations.json harness2-k1
 
 The report includes paired win/tie/loss, delivery and regression rates, tool errors, tokens/cost/latency, gain per cost, a bootstrap 95% CI, and a release gate. See [the evaluation guide](docs/evaluation.md).
 
-The optional DSH-native operator UI is documented in [DSH visualization panel and Web Harness Diff](docs/dsh-visualization-panel.md).
+The package includes its DSH-native operator UI and Web Harness Diff; no DeepSeek Harness fork is required. See [DSH visualization panel and Web Harness Diff](docs/dsh-visualization-panel.md).
 
 ## License
 

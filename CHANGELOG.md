@@ -7,6 +7,8 @@ All notable changes to this project will be documented here. The format follows 
 ### Added
 
 - GitHub publishing metadata, CI, security policy, contribution guidance, and deployment documentation.
+- DSH-native Harness² dashboard and Web Harness Diff, distributed by the same plugin package.
+- Authenticated, bounded Run Store projections with Base Harness persistence for complete comparisons.
 
 ## [0.1.0] - 2026-10-20
 

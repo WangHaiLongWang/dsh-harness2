@@ -13,6 +13,7 @@
 
 ## 当前能力
 
+- 内置 DSH Web 可视化面板，展示 Base → INV/DOM → Compose 流程与文件/行级 Harness Diff。
 - Parallel 和 Sequential 两种递归模式；一种模式约执行 `4k` 个 rollout 和 `3k` 个编辑/合成阶段。
 - INV（通用执行能力）与 DOM（领域能力）分工、匹配 Probe、选择性 Compose、匿名最终选择。
 - C1–C7 Harness 组件：system prompt、guardrails、memory、tool guidance、subagents、skills、scripts。

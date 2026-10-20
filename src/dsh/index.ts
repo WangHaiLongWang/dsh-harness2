@@ -5,6 +5,7 @@ import { defineTool } from "@deepseek-ai/dsh-tools";
 import type {} from "@deepseek-ai/dsh-agent-preset-registry";
 import { DshHarness2Runtime, type DshHarness2Config } from "./runtime.js";
 import type { Harness2Event } from "../types.js";
+import { mountHarness2Panel } from "../panel/service.js";
 
 declare module "@deepseek-ai/cordis" {
   interface Context {
@@ -53,6 +54,7 @@ export function apply(ctx: Context, config: DshHarness2Config): void {
   }
   const runtime = new DshHarness2Runtime(ctx, config);
   ctx.provide("harness2", runtime);
+  mountHarness2Panel(ctx, `${config.dataDir}/runs`);
   ctx.tools.register(defineTool({
     name: "harness2_run",
     description: "Run a high-cost Harness² Propose-Probe-Compose job for one explicit task. Use only when the user asks for recursive harness improvement or extra test-time adaptation.",

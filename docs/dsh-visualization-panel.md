@@ -1,6 +1,6 @@
 # DSH 可视化面板与 Web Harness Diff
 
-Harness² 的可视化界面作为 DSH Web 客户端插件运行，源码位于配套 DSH 工作区的 `packages/experimental/harness2-panel`。它与 `dsh-plugin-harness2` 共用 Run Store，但保持只读。
+Harness² 的可视化界面已经内置在 `dsh-plugin-harness2`：Host 读取层位于 `src/panel/`，DSH Web 客户端位于 `src/client/`。它与递归运行引擎共用 Run Store，但保持只读。
 
 ## 能看到什么
 
@@ -14,20 +14,22 @@ Harness² 的可视化界面作为 DSH Web 客户端插件运行，源码位于�
 
 ## 本地启用
 
-面板包需要随 DSH Web 构建和启动。配套 DSH 源码已包含以下 profile 行：
+面板与运行引擎使用同一个 profile 行，不需要修改或 fork `deepseek-harness`：
 
 ```yaml
-- id: harness2-panel
-  name: '@deepseek-ai/dsh-experimental-harness2-panel'
+- id: harness2
+  name: dsh-plugin-harness2
+  disabled: false
   config:
-    dataDir: !!js dshHomePath('harness2/runs')
+    dataDir: !!js dshHomePath('harness2')
 ```
 
-先构建面板，再重启原 Web profile：
+从源码开发时，先链接 DSH 依赖并构建整个插件，再重启 Web profile：
 
 ```powershell
-cd D:\ProjectS\deepseek-harness
-pnpm --filter @deepseek-ai/dsh-experimental-harness2-panel bundle
+cd <dsh-harness2源码目录>
+npm run link:dsh -- <deepseek-harness源码目录>
+npm run build
 ```
 
 打开 DSH 后，左侧栏的分支图标对应 `Harness²` 面板。执行一次新的 `harness2_run` 后点击“刷新”，即可查看完整 Diff。

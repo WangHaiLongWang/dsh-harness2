@@ -17,6 +17,16 @@ const links = {
   "@deepseek-ai/dsh-subagent": "packages/subagent/subagent",
   "@deepseek-ai/dsh-system-prompt": "packages/core/system-prompt",
   "@deepseek-ai/dsh-tools": "packages/core/tools",
+  "@deepseek-ai/dsh-typert-protocol": "packages/typert/protocol",
+  "@deepseek-ai/dsh-api-remotes": "packages/api/remotes",
+  "@deepseek-ai/dsh-client-locale": "packages/client/locale",
+  "@deepseek-ai/dsh-client-connection": "packages/client/connection",
+  "@deepseek-ai/dsh-client-store": "packages/client/store",
+  "@deepseek-ai/dsh-client-ui-layout": "packages/client/ui-layout",
+  "@deepseek-ai/dsh-client-ui-primitives": "packages/client/ui-primitives",
+  "@deepseek-ai/dsh-client-ui-renderer": "packages/client/ui-renderer",
+  "@deepseek-ai/dsh-client-ui-sidebar": "packages/client/ui-sidebar",
+  "@deepseek-ai/dsh-client-ui-slots": "packages/client/ui-slots",
   "@deepseek-ai/schemastery": "vendor/schemastery",
 };
 
