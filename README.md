@@ -183,6 +183,8 @@ npm run check
 
 ## 文档
 
+- [DSH 可视化面板与 Web Harness Diff](docs/dsh-visualization-panel.md)
+
 - [架构说明](docs/architecture.md)
 - [配置参考](docs/configuration.md)
 - [部署与运维](docs/deployment.md)

@@ -64,6 +64,7 @@ test("parallel k=2 executes 4k rollouts, 3k stages, selection, and reflection", 
   assert.equal(editor.compositionCalls.length, 2);
   assert.equal(runStore.runs.length, 8);
   assert.equal(runStore.summaries.length, 1);
+  assert.deepEqual(result.baseHarness, await substrate.baseHarness(task));
   assert.equal(result.experienceWritten, true);
   assert.equal((await experienceStore.list(policy.scope)).length, 1);
 });

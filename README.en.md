@@ -58,6 +58,8 @@ npm run eval:report -- observations.json harness2-k1
 
 The report includes paired win/tie/loss, delivery and regression rates, tool errors, tokens/cost/latency, gain per cost, a bootstrap 95% CI, and a release gate. See [the evaluation guide](docs/evaluation.md).
 
+The optional DSH-native operator UI is documented in [DSH visualization panel and Web Harness Diff](docs/dsh-visualization-panel.md).
+
 ## License
 
 [MIT](LICENSE). See [NOTICE](NOTICE) for attribution and trademarks.

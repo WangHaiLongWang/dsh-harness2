@@ -125,12 +125,14 @@ export class Harness2Orchestrator {
     const baseRuns: RunArtifact[] = [];
     let chosenLabel = "";
     let chosenRun: RunArtifact | undefined;
+    let baseHarness: HarnessTree | undefined;
     let adoptedHarness: HarnessTree | undefined;
     let experienceWritten = false;
 
     try {
       if (signal?.aborted) throw new DOMException("run cancelled", "AbortError");
       const base = await this.#substrate.baseHarness(task);
+      baseHarness = base;
       const initialValidation = await this.#validate(base, task);
       if (!initialValidation.ok) {
         throw new Error(`base harness is invalid: ${initialValidation.issues.map((i) => i.message).join("; ")}`);
@@ -228,6 +230,7 @@ export class Harness2Orchestrator {
       status: signal?.aborted ? "cancelled" : chosenRun ? "completed" : "failed",
       chosenLabel,
       ...(chosenRun ? { chosenRun } : {}),
+      ...(baseHarness ? { baseHarness } : {}),
       ...(adoptedHarness ? { adoptedHarness } : {}),
       baseRuns,
       stages,

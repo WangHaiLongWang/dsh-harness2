@@ -193,6 +193,8 @@ export interface Harness2Result {
   status: "completed" | "failed" | "cancelled";
   chosenLabel: string;
   chosenRun?: RunArtifact;
+  /** Validated Harness active before this run; persisted for visual Base/Candidate comparison. */
+  baseHarness?: HarnessTree;
   adoptedHarness?: HarnessTree;
   baseRuns: readonly RunArtifact[];
   stages: readonly StageEvidence[];
